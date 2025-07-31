@@ -9,7 +9,7 @@ import 'text_message_format.dart';
 import 'utils.dart';
 
 const String JSON_HUB_PROTOCOL_NAME = "json";
-const int PROTOCOL_VERSION = 1;
+const int PROTOCOL_VERSION = 2;
 const TransferFormat TRANSFER_FORMAT = TransferFormat.Text;
 
 class JsonHubProtocol implements IHubProtocol {

@@ -8,7 +8,7 @@ import 'itransport.dart';
 import 'binary_message_format.dart';
 
 const String MSGPACK_HUB_PROTOCOL_NAME = "messagepack";
-const int PROTOCOL_VERSION = 1;
+const int PROTOCOL_VERSION = 2;
 const TransferFormat TRANSFER_FORMAT = TransferFormat.Binary;
 
 class MessagePackHubProtocol implements IHubProtocol {

@@ -32,7 +32,7 @@ class NegotiateResponse {
   final String? url;
   final String? accessToken;
   final String? error;
-  final bool? useAck;
+  final bool? useStatefulReconnect;
 
   bool get hasConnectionId => !isStringEmpty(connectionId);
 
@@ -58,7 +58,7 @@ class NegotiateResponse {
     this.url,
     this.accessToken,
     this.error,
-    this.useAck,
+    this.useStatefulReconnect,
   );
 
   NegotiateResponse.fromJson(Map<String, dynamic> json)
@@ -68,7 +68,7 @@ class NegotiateResponse {
         this.url = json['url'],
         this.accessToken = json['accessToken'],
         this.error = json['error'],
-        this.useAck = json['useAck'] {
+        this.useStatefulReconnect = json['useStatefulReconnect'] {
     availableTransports = [];
     final List<dynamic>? transports = json['availableTransports'];
     if (transports == null) {
@@ -453,7 +453,7 @@ class HttpConnection implements IConnection {
         negotiateResponse.connectionToken = negotiateResponse.connectionId;
       }
 
-      if (negotiateResponse.useAck == true && _options.useStatefulReconnect != true) {
+      if (negotiateResponse.useStatefulReconnect == true && _options.useStatefulReconnect != true) {
         return Future.error(GeneralError("Client didn't negotiate Stateful Reconnect but the server did."));
       }
 
@@ -492,7 +492,7 @@ class HttpConnection implements IConnection {
 
       try {
         _transport = _resolveTransport(
-            endpoint, requestedTransport as HttpTransportType?, requestedTransferFormat, negotiate?.useAck == true);
+            endpoint, requestedTransport as HttpTransportType?, requestedTransferFormat, negotiate?.useStatefulReconnect == true);
       } catch (e) {
         transportExceptions.add("${endpoint.transport} failed: $e");
         continue;
@@ -551,7 +551,7 @@ class HttpConnection implements IConnection {
       _transport!.onClose = (e) {
         var callStop = false;
 
-        if (features?.resend != null) {
+        if (features?.reconnect != null) {
           // async işlemleri future içine at
           Future.microtask(() async {
             try {
@@ -578,7 +578,7 @@ class HttpConnection implements IConnection {
   }
 
   ITransport _resolveTransport(AvailableTransport endpoint, HttpTransportType? requestedTransport,
-      TransferFormat requestedTransferFormat, bool useAcks) {
+      TransferFormat requestedTransferFormat, bool useStatefulReconnect) {
     final transport = endpoint.transport;
     if (transport == null) {
       _logger?.finer("Skipping transport '${endpoint.transport}' because it is not supported by this client.");
@@ -588,7 +588,7 @@ class HttpConnection implements IConnection {
         final transferFormats = endpoint.transferFormats!;
         if (transferFormats.indexOf(requestedTransferFormat) >= 0) {
           _logger?.finer("Selecting transport '${transport.toString()}'.");
-          features?.reconnect = transport == HttpTransportType.WebSockets ? useAcks : false;
+          features?.reconnect = transport == HttpTransportType.WebSockets ? useStatefulReconnect : false;
           return _constructTransport(transport);
         } else {
           _logger?.finer(

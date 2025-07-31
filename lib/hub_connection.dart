@@ -217,7 +217,15 @@ class HubConnection {
     await _connection.start(transferFormat: _protocol.transferFormat);
 
     try {
-      final handshakeRequest = HandshakeRequestMessage(_protocol.name, _protocol.version);
+
+      var version = _protocol.version;
+
+      if(_connection.features?.reconnect != true){
+        version = 1;
+      }
+
+
+      final handshakeRequest = HandshakeRequestMessage(_protocol.name, version);
 
       _logger?.finer("Sending handshake request.");
 
@@ -242,8 +250,8 @@ class HubConnection {
         throw _stopDuringStartError!;
       }
 
-      final useAck = _connection.features?.reconnect ?? false;
-      if (useAck) {
+      final useStatefulReconnect = _connection.features?.reconnect ?? false;
+      if (useStatefulReconnect) {
         _messageBuffer = MessageBuffer(_protocol, _connection, _statefulReconnectBufferSize);
 
         _connection.features?.disconnected = () {
@@ -776,7 +784,7 @@ class HubConnection {
     var previousReconnectAttempts = 0;
     Exception retryError = error != null ? error : GeneralError("Attempting to reconnect due to a unknown error.");
 
-    var nextRetryDelay = _getNextRetryDelay(previousReconnectAttempts++, 0, retryError);
+    var nextRetryDelay = _getNextRetryDelay(previousReconnectAttempts, 0, retryError);
 
     if (nextRetryDelay == null) {
       _logger
@@ -806,7 +814,7 @@ class HubConnection {
     }
 
     while (nextRetryDelay != null) {
-      _logger?.info("Reconnect attempt number $previousReconnectAttempts will start in $nextRetryDelay ms.");
+      _logger?.info("Reconnect attempt number ${previousReconnectAttempts + 1} will start in $nextRetryDelay ms.");
 
       await Future.delayed(Duration(milliseconds: nextRetryDelay));
 
@@ -837,9 +845,10 @@ class HubConnection {
           return;
         }
 
+        previousReconnectAttempts++;
         retryError = Exception(e);
         nextRetryDelay = _getNextRetryDelay(
-            previousReconnectAttempts++, DateTime.now().difference(reconnectStartTime).inMilliseconds, retryError);
+            previousReconnectAttempts, DateTime.now().difference(reconnectStartTime).inMilliseconds, retryError);
       }
     }
 
