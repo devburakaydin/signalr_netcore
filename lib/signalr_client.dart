@@ -7,3 +7,4 @@ export 'hub_connection.dart';
 export 'hub_connection_builder.dart';
 export 'itransport.dart';
 export 'signalr_http_client.dart';
+export 'stateful_reconnect_options.dart';

@@ -96,6 +96,16 @@ class MessagePackHubProtocol implements IHubProtocol {
     if (messageType == MessageType.Close.index) {
       messageObj = _createCloseMessage(data);
       return messageObj;
+    }
+
+    if (messageType == MessageType.Ack.index) {
+      messageObj = _createAckMessage(data);
+      return messageObj;
+    }
+
+    if (messageType == MessageType.Sequence.index) {
+      messageObj = _createSequenceMessage(data);
+      return messageObj;
     } else {
       // Future protocol changes can add message types, old clients can ignore them
       logger?.info("Unknown message type '$messageType' ignored.");
@@ -205,6 +215,24 @@ class MessagePackHubProtocol implements IHubProtocol {
     }
   }
 
+  static AckMessage _createAckMessage(List<dynamic> data) {
+    // check minimum length to allow protocol to add items to the end of objects in future releases
+    if (data.length < 2) {
+      throw GeneralError("Invalid payload for Ack message.");
+    }
+
+    return AckMessage(data[1] as int);
+  }
+
+  static SequenceMessage _createSequenceMessage(List<dynamic> data) {
+    // check minimum length to allow protocol to add items to the end of objects in future releases
+    if (data.length < 2) {
+      throw GeneralError("Invalid payload for Sequence message.");
+    }
+
+    return SequenceMessage(data[1] as int);
+  }
+
   @override
   Object writeMessage(HubMessageBase message) {
     final messageType = message.type;
@@ -221,6 +249,11 @@ class MessagePackHubProtocol implements IHubProtocol {
         return _writePing();
       case MessageType.CancelInvocation:
         return _writeCancelInvocation(message as CancelInvocationMessage);
+      case MessageType.Ack:
+        return _writeAck(message as AckMessage);
+      case MessageType.Sequence:
+        return _writeSequence(message as SequenceMessage);
+
       default:
         throw GeneralError("Invalid message type.");
     }
@@ -348,6 +381,26 @@ class MessagePackHubProtocol implements IHubProtocol {
 
     payload = [
       MessageType.Ping.index,
+    ];
+
+    final packedData = msgpack.serialize(payload);
+    return BinaryMessageFormat.write(packedData);
+  }
+
+  static Uint8List _writeAck(AckMessage message) {
+    final payload = [
+      MessageType.Ack.index,
+      message.sequenceId,
+    ];
+
+    final packedData = msgpack.serialize(payload);
+    return BinaryMessageFormat.write(packedData);
+  }
+
+  static Uint8List _writeSequence(SequenceMessage message) {
+    final payload = [
+      MessageType.Sequence.index,
+      message.sequenceId,
     ];
 
     final packedData = msgpack.serialize(payload);

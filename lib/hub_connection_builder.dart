@@ -27,6 +27,8 @@ class HubConnectionBuilder {
   ///
   IRetryPolicy? _reconnectPolicy;
 
+  int? _statefulReconnectBufferSize;
+
   /// Configures console logging for the HubConnection.
   ///
   /// logger: this logger with the already configured log level will be used.
@@ -45,8 +47,7 @@ class HubConnectionBuilder {
   /// Use either options or transportType.
   /// Returns the builder instance, for chaining.
   ///
-  HubConnectionBuilder withUrl(String url,
-      {HttpConnectionOptions? options, HttpTransportType? transportType}) {
+  HubConnectionBuilder withUrl(String url, {HttpConnectionOptions? options, HttpTransportType? transportType}) {
     assert(!isStringEmpty(url));
     assert(!(options != null && transportType != null));
 
@@ -70,8 +71,7 @@ class HubConnectionBuilder {
     return this;
   }
 
-  HubConnectionBuilder withAutomaticReconnect(
-      {IRetryPolicy? reconnectPolicy, List<int>? retryDelays}) {
+  HubConnectionBuilder withAutomaticReconnect({IRetryPolicy? reconnectPolicy, List<int>? retryDelays}) {
     assert(_reconnectPolicy == null);
 
     if (reconnectPolicy == null && retryDelays == null) {
@@ -85,6 +85,15 @@ class HubConnectionBuilder {
     return this;
   }
 
+  /// Enables and configures options for the Stateful Reconnect feature.
+  HubConnectionBuilder withStatefulReconnect({int? bufferSize}) {
+    _httpConnectionOptions ??= HttpConnectionOptions();
+    _httpConnectionOptions?.useStatefulReconnect = true;
+
+    _statefulReconnectBufferSize = bufferSize;
+    return this;
+  }
+
   /// Creates a HubConnection from the configuration options specified in this builder.
   ///
   /// Returns the configured HubConnection.
@@ -92,8 +101,7 @@ class HubConnectionBuilder {
   HubConnection build() {
     // If httpConnectionOptions has a logger, use it. Otherwise, override it with the one
     // provided to configureLogger
-    final httpConnectionOptions =
-        _httpConnectionOptions ?? HttpConnectionOptions();
+    final httpConnectionOptions = _httpConnectionOptions ?? HttpConnectionOptions();
 
     // Now create the connection
     if (isStringEmpty(_url)) {
@@ -101,8 +109,7 @@ class HubConnectionBuilder {
           "The 'HubConnectionBuilder.withUrl' method must be called before building the connection.");
     }
     final connection = HttpConnection(_url!, options: httpConnectionOptions);
-    return HubConnection.create(
-        connection, _logger, _protocol ?? JsonHubProtocol(),
-        reconnectPolicy: _reconnectPolicy);
+    return HubConnection.create(connection, _logger, _protocol ?? JsonHubProtocol(),
+        reconnectPolicy: _reconnectPolicy, statefulReconnectBufferSize: _statefulReconnectBufferSize);
   }
 }

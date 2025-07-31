@@ -23,6 +23,8 @@ enum MessageType {
   Ping, // = 6,
   /// Indicates the message is a Close message and implements the {@link @microsoft/signalr.CloseMessage} interface.
   Close, // = 7,
+  Ack, // = 8,
+  Sequence, // = 9,
 }
 
 MessageType? parseMessageTypeFromString(int? value) {
@@ -58,6 +60,7 @@ class MessageHeaders {
   HashMap<String, String>? _headers;
 
   Iterable<String> get names => _headers!.keys;
+
   HashMap<String, String>? get asMap => _headers;
 
   bool get isEmpty => _headers!.length == 0;
@@ -131,8 +134,7 @@ abstract class HubInvocationMessage extends HubMessageBase {
   final String? invocationId;
 
   // Methods
-  HubInvocationMessage(
-      MessageType messageType, MessageHeaders? headers, String? invocationId)
+  HubInvocationMessage(MessageType messageType, MessageHeaders? headers, String? invocationId)
       : this.headers = headers ?? MessageHeaders(),
         this.invocationId = invocationId,
         super(messageType);
@@ -162,6 +164,7 @@ class InvocationMessage extends HubInvocationMessage {
         this.arguments = arguments,
         this.streamIds = streamIds,
         super(MessageType.Invocation, headers, invocationId);
+
   @override
   String toString() {
     return 'InvocationMessage - type: ${type.index}, headers: ${headers.toString()}, invocationId: $invocationId, target: $target, arguments: $arguments, streamIds: $streamIds';
@@ -183,11 +186,7 @@ class StreamInvocationMessage extends HubInvocationMessage {
 
   // Methods
   StreamInvocationMessage(
-      {String? target,
-      List<Object>? arguments,
-      List<String>? streamIds,
-      MessageHeaders? headers,
-      String? invocationId})
+      {String? target, List<Object>? arguments, List<String>? streamIds, MessageHeaders? headers, String? invocationId})
       : this.target = target,
         this.arguments = arguments,
         this.streamIds = streamIds,
@@ -207,8 +206,7 @@ class StreamItemMessage extends HubInvocationMessage {
   final Object? item;
 
   // Methods
-  StreamItemMessage(
-      {Object? item, MessageHeaders? headers, String? invocationId})
+  StreamItemMessage({Object? item, MessageHeaders? headers, String? invocationId})
       : this.item = item,
         super(MessageType.StreamItem, headers, invocationId);
 
@@ -233,14 +231,11 @@ class CompletionMessage extends HubInvocationMessage {
   final Object? result;
 
   // Methods
-  CompletionMessage(
-      {String? error,
-      Object? result,
-      MessageHeaders? headers,
-      String? invocationId})
+  CompletionMessage({String? error, Object? result, MessageHeaders? headers, String? invocationId})
       : this.error = error,
         this.result = result,
         super(MessageType.Completion, headers, invocationId);
+
   @override
   String toString() {
     return 'CompletionMessage - type: ${type.index}, headers: ${headers.toString()}, invocationId: $invocationId, error: $error, result: $result';
@@ -255,6 +250,32 @@ class PingMessage extends HubMessageBase {
   @override
   String toString() {
     return 'PingMessage - type: ${type.index}';
+  }
+}
+
+/// A hub message acknowledging a previous message.
+class AckMessage extends HubMessageBase {
+  /// The sequence ID of the message being acknowledged.
+  final int sequenceId;
+
+  AckMessage(this.sequenceId) : super(MessageType.Ack);
+
+  @override
+  String toString() {
+    return 'AckMessage - type: ${type.index}, sequenceId: $sequenceId';
+  }
+}
+
+/// A hub message containing a sequence ID.
+class SequenceMessage extends HubMessageBase {
+  /// The sequence ID of this message.
+  final int sequenceId;
+
+  SequenceMessage(this.sequenceId) : super(MessageType.Sequence);
+
+  @override
+  String toString() {
+    return 'SequenceMessage - type: ${type.index}, sequenceId: $sequenceId';
   }
 }
 
